@@ -292,7 +292,16 @@ class InstallerEngine:
         
         venv_dir = os.path.join(self.target_dir, ".venv")
         if not os.path.exists(venv_dir):
-            subprocess.run(["py", "install", '3.12'], check=True)
+            subprocess.run(
+                [
+                    "winget", "install", 
+                    "--id", "Python.Python.3.12", 
+                    "-e", 
+                    "--accept-package-agreements", 
+                    "--accept-source-agreements"
+                ], 
+                check=True
+            )
             self.update_ui_callback(
                 step_index=self.current_step,
                 status="running",
