@@ -24,8 +24,9 @@ def InstallView(page: ft.Page):
         "Downloading Vision-Language Model",
         "Downloading Multimodal Projector for VLM",
         "Downloading Assets, Databases, and Scripts",
-        "Installing Python Dependencies",
         "Installing LLM Server",
+        "Installing Python Dependencies",
+        "Installing IRIS Control Center",
         "Checking if everything is in place",
         "IRIS System Installed"
     ]

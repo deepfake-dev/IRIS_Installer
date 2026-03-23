@@ -9,6 +9,7 @@ import shutil
 from tqdm.auto import tqdm
 from huggingface_hub import hf_hub_download, list_repo_files
 import fnmatch
+import win32com.client
 
 class InstallerEngine:
     current_tries: int = 0
@@ -244,9 +245,51 @@ class InstallerEngine:
                 description=f"Installed Python Dependencies"
             )
 
-            # Check everything
+            # Install Control Center
 
             self.current_step = 8
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Downloading Control Center"
+            )
+            self._download_using_requests(
+                "git",
+                "https://github.com/deepfake-dev/IRIS_Control_Center/archive/refs/heads/main.zip",
+                "main.zip"
+            )
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Decompressing Package."
+            )
+            self.decompress_main()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Moving Control Center Files."
+            )
+            self.move_control_center_files()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Cleaning up cloned git"
+            )
+            self.clean_git()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="done",
+                progress=-1,
+                description=f"Installed IRIS Control Center"
+            )
+
+            # Check everything
+
+            self.current_step = 9
             self.update_ui_callback(
                 step_index=self.current_step,
                 status="running",
@@ -261,7 +304,7 @@ class InstallerEngine:
                 description=f"Checked everything"
             )
 
-            self.current_step = 9
+            self.current_step = 10
             self.update_ui_callback(
                 step_index=self.current_step,
                 status="done",
@@ -292,30 +335,57 @@ class InstallerEngine:
         
         venv_dir = os.path.join(self.target_dir, ".venv")
         if not os.path.exists(venv_dir):
-            subprocess.run(
-                [
-                    "winget", "install", 
-                    "--id", "Python.Python.3.12", 
-                    "-e", 
-                    "--accept-package-agreements", 
-                    "--accept-source-agreements"
-                ], 
-                check=True
-            )
+            # 1. Check if Python 3.12 is already installed
+            python_312_exists = False
+            try:
+                # Check if the 'py' launcher can find 3.12 without throwing an error
+                check_proc = subprocess.run(
+                    ["py", "-3.12", "--version"], 
+                    capture_output=True, 
+                    text=True
+                )
+                if check_proc.returncode == 0:
+                    python_312_exists = True
+            except FileNotFoundError:
+                # The 'py' command doesn't exist at all
+                pass
+
+            # 2. Only run winget if we couldn't find Python 3.12
+            if not python_312_exists:
+                self.update_ui_callback(
+                    step_index=self.current_step,
+                    status="running",
+                    progress=-1,
+                    description="Installing Python 3.12"
+                )
+                subprocess.run(
+                    [
+                        "winget", "install", 
+                        "--id", "Python.Python.3.12", 
+                        "-e", 
+                        "--accept-package-agreements", 
+                        "--accept-source-agreements"
+                    ], 
+                    check=True
+                )
+            else:
+                self.update_ui_callback(
+                    step_index=self.current_step,
+                    status="running",
+                    progress=-1,
+                    description="Python 3.12 found, skipping installation."
+                )
+
+            # 3. Create the virtual environment
             self.update_ui_callback(
                 step_index=self.current_step,
                 status="running",
                 progress=-1,
-                description=f"Installing Python 3.12"
+                description="Creating Python 3.12 Environment"
             )
             subprocess.run(["py", "-3.12", "-m", "venv", venv_dir], check=True)
-            self.update_ui_callback(
-                step_index=self.current_step,
-                status="running",
-                progress=-1,
-                description=f"Creating Python 3.12 Environment"
-            )
-            self.venv_python = os.path.join(venv_dir, "Scripts", "python.exe")
+            
+        self.venv_python = os.path.join(venv_dir, "Scripts", "python.exe")
     
     def clean_git(self):
         dirs = ["git", "main_zip"]
@@ -422,9 +492,54 @@ class InstallerEngine:
             with open(os.path.join(self.target_dir, "scripts", "requirements.txt"), 'x') as f:
                 f.write(contents)
     
+    def move_control_center_files(self):
+        decompressed_folder = os.path.join(self.target_dir, "main_zip")
+        if not os.path.exists(decompressed_folder):
+            print("no decompressed folder hahaha")
+            return
+
+        icc_dir = os.path.join(self.target_dir, "iris_control_center")
+        
+        try:
+            shutil.copytree(
+                os.path.join(decompressed_folder, "IRIS_Control_Center-main"),
+                icc_dir
+            )
+        except shutil.SameFileError:
+            print("Source and destination represent the same file.")
+        except PermissionError:
+            print("Permission denied.")
+        except IsADirectoryError:
+            print("Destination is a directory, please provide a file name.")
+        except FileNotFoundError:
+            print("Source file not found.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+        self.update_ui_callback(
+            step_index=self.current_step,
+            status="running",
+            progress=-1,
+            description="Python 3.12 found, skipping installation."
+        )
+
+        self.update_ui_callback(
+            step_index=self.current_step,
+            status="running",
+            progress=-1,
+            description="Creating shortcut"
+        )
+        
+        shell = win32com.client.Dispatch("WScript.Shell")
+        shortcut = shell.CreateShortCut(os.path.join(self.target_dir, "IRIS Control Center.lnk"))
+        shortcut.Targetpath = os.path.join(self.target_dir, "iris_control_center", "IRIS Control Center.bat")
+        shortcut.IconLocation = os.path.join(self.target_dir, "iris_control_center", "src", "assets", "icon.ico")
+        shortcut.WorkingDirectory = os.path.join(self.target_dir, "iris_control_center")
+        shortcut.WindowStyle = 7
+        shortcut.save()
+    
     def _download_provenance_models(self):
         os.makedirs(os.path.join(self.target_dir, "models/provenance"), exist_ok=True)
-        os.makedirs(os.path.join(self.target_dir, "scripts/provenance"), exist_ok=True)
 
         links = [
             "https://github.com/deepfake-dev/IRIS_System/releases/download/ProvenanceModel/deepfake_detector_feb26.onnx",
@@ -622,6 +737,9 @@ class InstallerEngine:
                 progress=-1,
                 description=f"Unzipped CUDA-RT"
             )
+
+            os.remove(llama_cpp_zip_path)
+            os.remove(cudart_zip_path)
         else:
             print("AYAWWWW")
 
@@ -636,6 +754,7 @@ class InstallerEngine:
             os.path.exists(os.path.join(self.target_dir, "avatar", "js", "main.js")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "js", "scene.js")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "js", "signal.js")),
+            os.path.exists(os.path.join(self.target_dir, "avatar", "js", "vrm.js")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "js", "websocket.js")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "bsu_girl.vrm")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "icon.png")),
@@ -646,6 +765,7 @@ class InstallerEngine:
             # DATABASE
             os.path.exists(os.path.join(self.target_dir, "databases", "Citizens_Charter_Handbook_2025.db")),
             os.path.exists(os.path.join(self.target_dir, "databases", "Citizens_Charter_Handbook_2025.faiss")),
+            os.path.exists(os.path.join(self.target_dir, "databases", "chroma_db")),
 
             # MODELS (PROVENANCE)
             os.path.exists(os.path.join(self.target_dir, "models", "provenance", "deepfake_detector_model.onnx")),
@@ -676,10 +796,20 @@ class InstallerEngine:
             os.path.exists(os.path.join(self.target_dir, "scripts", "requirements.txt")),
             os.path.exists(os.path.join(self.target_dir, "scripts", "assistant", "avatar.py")),
             os.path.exists(os.path.join(self.target_dir, "scripts", "assistant", "vlm_handler.py")),
+            os.path.exists(os.path.join(self.target_dir, "scripts", "provenance_checker", "index.html")),
+            os.path.exists(os.path.join(self.target_dir, "scripts", "provenance_checker", "server.py")),
             os.path.exists(os.path.join(self.target_dir, "scripts", "provenance_checker", "main.py")),
             os.path.exists(os.path.join(self.target_dir, "scripts", "provenance_checker", "deepfake_detector.py")),
             os.path.exists(os.path.join(self.target_dir, "scripts", "provenance_checker", "metadata_scanner.py")),
             os.path.exists(os.path.join(self.target_dir, "scripts", "provenance_checker", "vlm_classifier.py")),
+
+            # CONTROL CENTER
+
+            os.path.exists(os.path.join(self.target_dir, "iris_control_center", "pyproject.toml")),
+            os.path.exists(os.path.join(self.target_dir, "iris_control_center", "IRIS Control Center.bat")),
+            os.path.exists(os.path.join(self.target_dir, "iris_control_center", "src", "main.py")),
+            os.path.exists(os.path.join(self.target_dir, "iris_control_center", "src", "assets", "icon.ico")),
+            os.path.exists(os.path.join(self.target_dir, "iris_control_center", "src", "assets", "icon.png")),
 
             # SERVER
             os.path.exists(os.path.join(self.target_dir, "server", "llama-server.exe")),
