@@ -6,10 +6,20 @@ def WelcomeView(page: ft.Page):
 
     install_button = ft.FilledButton(
         "Install IRIS",
-        bgcolor="#5017AC",
         width=200,
         disabled=True,
-        on_click=go_installation
+        on_click=go_installation,
+        style=ft.ButtonStyle(
+            bgcolor={
+                ft.ControlState.DISABLED: ft.Colors.GREY,
+                ft.ControlState.HOVERED: "#e4c6fa",
+                ft.ControlState.DEFAULT: "#cd9ef7",
+            },
+            color={
+                ft.ControlState.DISABLED: ft.Colors.WHITE,
+                ft.ControlState.DEFAULT: "#452981",
+            }
+        )
     )
 
     def enable_install(e):
@@ -19,7 +29,8 @@ def WelcomeView(page: ft.Page):
     container = ft.Container(
         width=640,
         height=480,
-        bgcolor="#FAFAFA",
+        bgcolor="#333333",
+        border=ft.Border.all(0.1, ft.Colors.WHITE_54),
         border_radius=16,
         alignment=ft.Alignment.CENTER,
         content=ft.Column(
@@ -38,7 +49,6 @@ def WelcomeView(page: ft.Page):
                             size=72,
                             spans=[
                                 ft.TextSpan("Installation", style=ft.TextStyle(size=24, weight=ft.FontWeight.W_900)),
-                                ft.TextSpan(" | ", style=ft.TextStyle(size=24, weight=ft.FontWeight.W_100))
                             ]
                         )
                     ]
@@ -46,9 +56,9 @@ def WelcomeView(page: ft.Page):
                 ft.Column(
                     spacing=0,
                     controls=[
-                        ft.TextButton("About IRIS System", icon=ft.Icons.INFO_OUTLINED, style=ft.ButtonStyle(color="#5017AC")),
-                        ft.TextButton("Check our paper", icon=ft.Icons.SCHOOL_OUTLINED, style=ft.ButtonStyle(color="#5017AC")),
-                        ft.TextButton("Suggest changes", icon=ft.Icons.LIGHTBULB_OUTLINED, style=ft.ButtonStyle(color="#5017AC")),
+                        ft.TextButton("About IRIS System", icon=ft.Icons.INFO_OUTLINED, style=ft.ButtonStyle(color="#cd9ef7")),
+                        ft.TextButton("Check our paper", icon=ft.Icons.SCHOOL_OUTLINED, style=ft.ButtonStyle(color="#cd9ef7")),
+                        ft.TextButton("Suggest changes", icon=ft.Icons.LIGHTBULB_OUTLINED, style=ft.ButtonStyle(color="#cd9ef7")),
                     ]
                 ),
                 ft.Column(
@@ -69,7 +79,7 @@ def WelcomeView(page: ft.Page):
 
     return ft.View(
         route="/",
-        bgcolor="#5017AC",
+        bgcolor="#262626",
         controls=[
             ft.SafeArea(
                 expand=True,

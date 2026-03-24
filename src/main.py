@@ -3,7 +3,7 @@ from views.welcome_view import WelcomeView
 from views.install_view import InstallView
 
 def main(page: ft.Page):
-    page.theme_mode = ft.ThemeMode.LIGHT
+    page.theme_mode = ft.ThemeMode.DARK
     page.title = "Iris Installer"
 
     def route_change():
@@ -23,6 +23,8 @@ def main(page: ft.Page):
 
     page.on_route_change = route_change
     page.on_view_pop = view_pop
+
+    page.route = "/install"
     
     route_change()
 

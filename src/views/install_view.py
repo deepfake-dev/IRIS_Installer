@@ -5,7 +5,7 @@ from install_engine import InstallerEngine
 
 def InstallView(page: ft.Page):
     default_path = os.path.join(os.getenv('LOCALAPPDATA', ''), 'IRIS')
-    path_text = ft.Text(default_path, color=ft.Colors.BLACK)
+    path_text = ft.Text(default_path, color=ft.Colors.WHITE)
     page.session.store.set("overwrite", False)
 
     async def change_path(e):
@@ -100,7 +100,7 @@ def InstallView(page: ft.Page):
     )
 
     sidebar = ft.Container(
-        bgcolor="#5017AC",
+        bgcolor="#333333",
         width=350,
         content=ft.Column(
             controls=[
@@ -117,7 +117,7 @@ def InstallView(page: ft.Page):
 
     status_text = ft.Text(
         "Waiting to Start",
-        color=ft.Colors.WHITE,
+        color="#BDD1D9",
         style=ft.TextStyle(
             font_family="JetBrains Mono"
         ),
@@ -135,62 +135,24 @@ def InstallView(page: ft.Page):
                         ft.Text("IRIS System\n", weight=ft.FontWeight.W_300, size=24)
                     ]
                 ),
-                ft.Card(
-                    bgcolor="#e7e1f0",
+                ft.Text("Installation Status", weight=ft.FontWeight.BOLD),
+                ft.Container(
+                    bgcolor="#0d1117",
+                    height=48,
+                    border_radius=8,
+                    padding=ft.Padding.symmetric(horizontal=16),
+                    alignment=ft.Alignment.CENTER_LEFT,
+                    content = status_text
+                ),
+                ft.Text("Installation Logs", weight=ft.FontWeight.BOLD),
+                ft.Container(
+                    bgcolor="#0d1117",
+                    height=48,
+                    border_radius=8,
                     expand=True,
-                    content=ft.Container(
-                        padding=ft.Padding.all(16),
-                        content = ft.Column(
-                            alignment=ft.MainAxisAlignment.START,
-                            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                            controls=[
-                                ft.Text("Installation Summary", weight=ft.FontWeight.BOLD),
-                                ft.Column(
-                                    scroll=ft.ScrollMode.ADAPTIVE,
-                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                                    expand=True,
-                                    controls = [
-                                        ft.DataTable(
-                                            expand=True,
-                                            columns=[
-                                                ft.DataColumn(label=ft.Text("Module")),
-                                                ft.DataColumn(label=ft.Text("Version")),
-                                                ft.DataColumn(label=ft.Text("Description")),
-                                                ft.DataColumn(label=ft.Text("Status")),
-                                            ],
-                                            rows=[
-                                                ft.DataRow(
-                                                    cells=[
-                                                        ft.DataCell(ft.Text("Python")),
-                                                        ft.DataCell(ft.Text("3.14.3")),
-                                                        ft.DataCell(ft.Text("The environment where all system files are hosted")),
-                                                        ft.DataCell(ft.Text("Installed")),
-                                                    ]
-                                                ),
-                                                ft.DataRow(
-                                                    cells=[
-                                                        ft.DataCell(ft.Text("C2PA-Python")),
-                                                        ft.DataCell(ft.Text("0.28.0")),
-                                                        ft.DataCell(ft.Text("The module that parses C2PA metadata of videos")),
-                                                        ft.DataCell(ft.Text("Installed")),
-                                                    ]
-                                                ),
-                                            ],
-                                        )
-                                    ]
-                                ),
-                                ft.Text("Installation Status", weight=ft.FontWeight.BOLD),
-                                ft.Container(
-                                    bgcolor="#333333",
-                                    height=32,
-                                    border_radius=8,
-                                    padding=ft.Padding.symmetric(horizontal=8),
-                                    alignment=ft.Alignment.CENTER_LEFT,
-                                    content = status_text
-                                )
-                            ]
-                        )
-                    )
+                    padding=ft.Padding.symmetric(horizontal=16),
+                    alignment=ft.Alignment.CENTER_LEFT,
+                    content = status_text
                 ),
                 ft.Text("Installation Path", weight=ft.FontWeight.BOLD),
                 ft.Row(
@@ -199,32 +161,48 @@ def InstallView(page: ft.Page):
                             content=ft.Row(
                                 alignment=ft.MainAxisAlignment.START,
                                 controls=[
-                                    ft.Icon(ft.Icons.FILE_OPEN_OUTLINED, color=ft.Colors.BLACK),
+                                    ft.Icon(ft.Icons.FILE_OPEN_OUTLINED, color=ft.Colors.WHITE),
                                     path_text
                                 ]
                             ),
                             expand=True,
                             style=ft.ButtonStyle(
-                                shape=ft.ContinuousRectangleBorder(side=ft.BorderSide(width=0.2)),
-                                padding=ft.Padding.only(left=8)
+                                shape=ft.ContinuousRectangleBorder(
+                                    side=ft.BorderSide(
+                                        width=0.2,
+                                        color=ft.Colors.WHITE
+                                    )
+                                ),
+                                padding=ft.Padding.only(left=8),
+                                bgcolor="#333333"
                             ),
                             on_click=change_path
                         ),
                         ft.Divider(color=ft.Colors.BLACK, thickness=2, height=16),
                         ft.FilledButton(
                             "Start Installation",
-                            bgcolor="#5017AC",
-                            on_click=start_install
+                            on_click=start_install,
+                            style=ft.ButtonStyle(
+                                bgcolor={
+                                    ft.ControlState.DISABLED: ft.Colors.GREY,
+                                    ft.ControlState.HOVERED: "#e4c6fa",
+                                    ft.ControlState.DEFAULT: "#cd9ef7",
+                                },
+                                color={
+                                    ft.ControlState.DISABLED: ft.Colors.WHITE,
+                                    ft.ControlState.DEFAULT: "#452981",
+                                }
+                            )
                         )
                     ]
-                )
+                ),
             ]
         )
     )
 
     return ft.View(
         route="/install",
-        bgcolor="#fafafa",
+        bgcolor="#262626",
         padding=0,
         controls=[
             ft.SafeArea(
@@ -234,7 +212,7 @@ def InstallView(page: ft.Page):
                     vertical_alignment=ft.CrossAxisAlignment.STRETCH,
                     controls=[
                         sidebar,
-                        ft.VerticalDivider(width=2, color=ft.Colors.BLACK),
+                        ft.VerticalDivider(width=1, color=ft.Colors.WHITE_54),
                         main_content
                     ]
                 )
