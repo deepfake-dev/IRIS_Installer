@@ -2,11 +2,53 @@ import flet as ft
 import os
 import shutil
 from install_engine import InstallerEngine
+import subprocess
+import datetime
+import asyncio
 
 def InstallView(page: ft.Page):
     default_path = os.path.join(os.getenv('LOCALAPPDATA', ''), 'IRIS')
     path_text = ft.Text(default_path, color=ft.Colors.WHITE)
     page.session.store.set("overwrite", False)
+
+    async def close_app(run_control_center: bool):
+        if run_control_center:
+            subprocess.Popen(
+                ["uv", "run", "--python", "./.venv/", "flet", "run", "./iris_control_center/src/main.py"],
+                cwd=path_text.value, # Set the working directory directly here
+                creationflags=subprocess.CREATE_NEW_CONSOLE
+            )
+        
+        # Give the OS a moment to register the process start
+        await asyncio.sleep(1)
+        page.window.close()
+
+    run_cc = ft.Checkbox("Run IRIS Control Center on exit.")
+
+    def show_closing_dialog():
+        dialog = ft.AlertDialog(
+            title=ft.Text("Installation Done!"),
+            modal=True,
+            content=run_cc,
+            alignment=ft.Alignment.CENTER,
+            actions=[
+                ft.TextButton("Ok", on_click=lambda e: page.pop_dialog()),
+                ft.TextButton("Cancel", on_click=lambda e: page.pop_dialog()),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+            on_dismiss=lambda e: close_app(run_cc.value),
+        )
+        page.show_dialog(dialog)
+
+    log_view = ft.ListView(expand=True, auto_scroll=True, spacing=4)
+
+    def write_log(message: str, is_error: bool = False):
+        timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+        color = "#ff6b6b" if is_error else "#BDD1D9"
+        log_view.controls.append(
+            ft.Text(f"[{timestamp}] {message}", color=color, font_family="JetBrains Mono")
+        )
+        page.update()
 
     async def change_path(e):
         path = await ft.FilePicker().get_directory_path(
@@ -84,7 +126,9 @@ def InstallView(page: ft.Page):
             
             engine = InstallerEngine(
                 target_dir=path,
-                update_callback=update_step_status
+                update_callback=update_step_status,
+                log_writer=write_log,
+                show_closing_dialog_command=show_closing_dialog
             )
             engine.start()
     
@@ -150,9 +194,9 @@ def InstallView(page: ft.Page):
                     height=48,
                     border_radius=8,
                     expand=True,
-                    padding=ft.Padding.symmetric(horizontal=16),
-                    alignment=ft.Alignment.CENTER_LEFT,
-                    content = status_text
+                    padding=ft.Padding.all(16),
+                    alignment=ft.Alignment.TOP_LEFT,
+                    content = log_view
                 ),
                 ft.Text("Installation Path", weight=ft.FontWeight.BOLD),
                 ft.Row(
@@ -199,6 +243,8 @@ def InstallView(page: ft.Page):
             ]
         )
     )
+
+    write_log("Logs...")
 
     return ft.View(
         route="/install",

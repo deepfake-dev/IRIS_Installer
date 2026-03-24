@@ -14,11 +14,13 @@ import win32com.client
 class InstallerEngine:
     current_tries: int = 0
     max_tries: int = 3
-    def __init__(self, target_dir, update_callback):
+    def __init__(self, target_dir, update_callback, log_writer, show_closing_dialog_command):
         self.target_dir = target_dir
         self.update_callback = update_callback
+        self.log_writer = log_writer
         self.is_cancelled = False
         self.loop = asyncio.get_event_loop()
+        self.show_closing_dialog = show_closing_dialog_command
 
     def start(self):
         global ACTIVE_ENGINE
@@ -89,7 +91,6 @@ class InstallerEngine:
                     "vocabulary.*",
                 ]
             )
-            # print("Downloading Kokoro-onnx Text-to-Speech model")
             self.update_ui_callback(
                 step_index=self.current_step,
                 status="running",
@@ -97,7 +98,7 @@ class InstallerEngine:
                 description="Downloading Kokoro-onnx Text-to-Speech model"
             )
             self._download_kokoro_onnx()
-            print("DONE ONNX")
+
             self.update_ui_callback(
                 step_index=self.current_step,
                 status="running",
@@ -111,7 +112,6 @@ class InstallerEngine:
                 progress=-1,
                 description=f"Downloaded Transcription/Narration Models"
             )
-            # print("DONE WAKEWORD")
 
             # Download Qwen3-VL and MMPROJ
 
@@ -152,7 +152,6 @@ class InstallerEngine:
                 progress=-1,
                 description=f"Downloaded Qwen3-VL multimodal projector (MMPROJ)"
             )
-            # print("DONE QWEN")
 
             # DL All other files
 
@@ -209,7 +208,6 @@ class InstallerEngine:
                 progress=-1,
                 description=f"Downloaded Assets, Databases, and Scripts"
             )
-            # print("DONE ASSETS")
 
             # Install Deps
 
@@ -312,9 +310,10 @@ class InstallerEngine:
                 description=f"IRIS System was installed!"
             )
 
+            self.show_closing_dialog()
+
         except Exception as e:
-            print(f"Installation failed: {e}")
-            # You could add an 'error' status to your callback here
+            self.log_writer(f"Installation failed: {e}")
 
     # ---------------------------------------------------------
     # ACTUAL INSTALLATION SCRIPTS
@@ -326,12 +325,14 @@ class InstallerEngine:
         if os.path.exists(self.target_dir):
             try:
                 shutil.rmtree(self.target_dir)
+                self.log_writer("Cleared Target Directory to Start.")
             except OSError as e:
-                print(f"Error: {e.strerror}. Could not delete directory '{self.target_dir}'.")
+                self.log_writer(f"Error: {e.strerror}. Could not delete directory '{self.target_dir}'.")
 
         os.makedirs(self.target_dir, exist_ok=True)
         os.makedirs(os.path.join(self.target_dir, "models"), exist_ok=True)
         os.makedirs(os.path.join(self.target_dir, "scripts"), exist_ok=True)
+        self.log_writer("Created required folders for models and scripts.")
         
         venv_dir = os.path.join(self.target_dir, ".venv")
         if not os.path.exists(venv_dir):
@@ -339,6 +340,7 @@ class InstallerEngine:
             python_312_exists = False
             try:
                 # Check if the 'py' launcher can find 3.12 without throwing an error
+                self.log_writer("Python 3.12 exists, creating a new environment")
                 check_proc = subprocess.run(
                     ["py", "-3.12", "--version"], 
                     capture_output=True, 
@@ -352,13 +354,14 @@ class InstallerEngine:
 
             # 2. Only run winget if we couldn't find Python 3.12
             if not python_312_exists:
+                self.log_writer("Python 3.12 not found. Installing it...")
                 self.update_ui_callback(
                     step_index=self.current_step,
                     status="running",
                     progress=-1,
                     description="Installing Python 3.12"
                 )
-                subprocess.run(
+                winget_command = subprocess.run(
                     [
                         "winget", "install", 
                         "--id", "Python.Python.3.12", 
@@ -366,8 +369,10 @@ class InstallerEngine:
                         "--accept-package-agreements", 
                         "--accept-source-agreements"
                     ], 
-                    check=True
+                    check=True,
+                    text=True
                 )
+                self.log_writer(winget_command.stdout)
             else:
                 self.update_ui_callback(
                     step_index=self.current_step,
@@ -394,26 +399,29 @@ class InstallerEngine:
             if os.path.exists(dir):
                 try:
                     shutil.rmtree(dir)
+                    self.log_writer("Successfully cleaned temporary git files")
                 except OSError as e:
-                    print(f"Error: {e.strerror}. Could not delete directory '{self.target_dir}'.")
+                    self.log_writer(f"Error: {e.strerror}. Could not delete directory '{self.target_dir}'.")
     
     def decompress_main(self):
         if not os.path.exists(os.path.join(self.target_dir, "git", "main.zip")):
-            print("main.zip does not exist.")
+            self.log_writer("main.zip does not exist.")
             return
         
         extract_dir = os.path.join(self.target_dir, "main_zip")
 
         if not os.path.exists(extract_dir):
+            self.log_writer(f"{extract_dir} not found. Creating it.")
             os.makedirs(extract_dir, exist_ok=True)
         
         with zipfile.ZipFile(os.path.join(self.target_dir, "git", "main.zip"), 'r') as zip_ref:
+            self.log_writer(f"Extracting main.zip")
             zip_ref.extractall(extract_dir)
     
     def move_avatar_assets(self):
         decompressed_folder = os.path.join(self.target_dir, "main_zip")
         if not os.path.exists(decompressed_folder):
-            print("no decompressed folder hahaha")
+            self.log_writer("Decompressed folder not found")
             return
 
         avatar_dir = os.path.join(self.target_dir, "avatar")
@@ -423,21 +431,22 @@ class InstallerEngine:
                 os.path.join(decompressed_folder, "IRIS_System-main", "avatar"),
                 avatar_dir
             )
+            self.log_writer("Successfully copied avatar files")
         except shutil.SameFileError:
-            print("Source and destination represent the same file.")
+            self.log_writer("Source and destination represent the same file.")
         except PermissionError:
-            print("Permission denied.")
+            self.log_writer("Permission denied.")
         except IsADirectoryError:
-            print("Destination is a directory, please provide a file name.")
+            self.log_writer("Destination is a directory, please provide a file name.")
         except FileNotFoundError:
-            print("Source file not found.")
+            self.log_writer("Source file not found.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.log_writer(f"An error occurred: {e}")
     
     def move_databases(self):
         decompressed_folder = os.path.join(self.target_dir, "main_zip")
         if not os.path.exists(decompressed_folder):
-            print("no decompressed folder hahaha")
+            self.log_writer("Decompressed folder not found")
             return
 
         databases_dir = os.path.join(self.target_dir, "databases")
@@ -447,21 +456,22 @@ class InstallerEngine:
                 os.path.join(decompressed_folder, "IRIS_System-main", "databases"),
                 databases_dir
             )
+            self.log_writer("Successfully copied database files.")
         except shutil.SameFileError:
-            print("Source and destination represent the same file.")
+            self.log_writer("Source and destination represent the same file.")
         except PermissionError:
-            print("Permission denied.")
+            self.log_writer("Permission denied.")
         except IsADirectoryError:
-            print("Destination is a directory, please provide a file name.")
+            self.log_writer("Destination is a directory, please provide a file name.")
         except FileNotFoundError:
-            print("Source file not found.")
+            self.log_writer("Source file not found.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.log_writer(f"An error occurred: {e}")
     
     def move_scripts(self):
         decompressed_folder = os.path.join(self.target_dir, "main_zip")
         if not os.path.exists(decompressed_folder):
-            print("no decompressed folder hahaha")
+            self.log_writer("Decompressed folder not found.")
             return
         
         folders = ['provenance_checker', 'assistant']
@@ -474,16 +484,17 @@ class InstallerEngine:
                     os.path.join(decompressed_folder, "IRIS_System-main", "scripts", folder),
                     folder_path
                 )
+                self.log_writer(f"Successfuly copied {folder} script files.")
             except shutil.SameFileError:
-                print("Source and destination represent the same file.")
+                self.log_writer("Source and destination represent the same file.")
             except PermissionError:
-                print("Permission denied.")
+                self.log_writer("Permission denied.")
             except IsADirectoryError:
-                print("Destination is a directory, please provide a file name.")
+                self.log_writer("Destination is a directory, please provide a file name.")
             except FileNotFoundError:
-                print("Source file not found.")
+                self.log_writer("Source file not found.")
             except Exception as e:
-                print(f"An error occurred: {e}")
+                self.log_writer(f"An error occurred: {e}")
         
         if os.path.exists(os.path.join(decompressed_folder, "IRIS_System-main", "scripts", "requirements.txt")):
             with open(os.path.join(decompressed_folder, "IRIS_System-main", "scripts", "requirements.txt"), 'r') as f:
@@ -491,11 +502,13 @@ class InstallerEngine:
             
             with open(os.path.join(self.target_dir, "scripts", "requirements.txt"), 'x') as f:
                 f.write(contents)
+            
+            self.log_writer("Successfully copied requirements.txt")
     
     def move_control_center_files(self):
         decompressed_folder = os.path.join(self.target_dir, "main_zip")
         if not os.path.exists(decompressed_folder):
-            print("no decompressed folder hahaha")
+            self.log_writer("Decompressed folder not found.")
             return
 
         icc_dir = os.path.join(self.target_dir, "iris_control_center")
@@ -505,16 +518,17 @@ class InstallerEngine:
                 os.path.join(decompressed_folder, "IRIS_Control_Center-main"),
                 icc_dir
             )
+            self.log_writer("Successfully copied control center files.")
         except shutil.SameFileError:
-            print("Source and destination represent the same file.")
+            self.log_writer("Source and destination represent the same file.")
         except PermissionError:
-            print("Permission denied.")
+            self.log_writer("Permission denied.")
         except IsADirectoryError:
-            print("Destination is a directory, please provide a file name.")
+            self.log_writer("Destination is a directory, please provide a file name.")
         except FileNotFoundError:
-            print("Source file not found.")
+            self.log_writer("Source file not found.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.log_writer(f"An error occurred: {e}")
 
         self.update_ui_callback(
             step_index=self.current_step,
@@ -553,10 +567,11 @@ class InstallerEngine:
 
         for i in range(2):
             self._download_using_requests("models/provenance", links[i], outs[i])
+            self.log_writer(f"Downloading {outs[i]}")
     
     def _download_kokoro_onnx(self):
         if not self.venv_python:
-            print("SADDDD")
+            self.log_writer("Python executable not found")
             return
         
         os.makedirs(os.path.join(self.target_dir, "models", "tts"), exist_ok=True)
@@ -571,7 +586,7 @@ class InstallerEngine:
         subprocess.run([self.venv_python, "-m", "pip", "install", "-U", "kokoro-onnx[gpu]"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         result = subprocess.run([self.venv_python, "-m", "pip", "show", "kokoro-onnx"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if "WARNING: Package(s) not found:" in result.stdout.strip():
-            print("HINDI NAGINSTALL!!!!")
+            self.log_writer(result.stdout)
         self.update_ui_callback(
             step_index=self.current_step,
             status="downloading",
@@ -580,11 +595,14 @@ class InstallerEngine:
         )
 
         self._download_using_requests("models\\tts", "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx", "kokoro-v1.0.onnx")
+        self.log_writer("Downloaded kokoro-onnx")
         self._download_using_requests("models\\tts", "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin", "voices-v1.0.bin")
+        self.log_writer("Downloaded kokoro voices")
     
     def _download_wakeword(self):
         os.makedirs(os.path.join(self.target_dir, "models", "wakeword"), exist_ok=True)
         self._download_using_requests("models\\wakeword", "https://github.com/deepfake-dev/IRIS_System/releases/download/WakeWordModel/hey_iris.onnx", "hey_iris.onnx")
+        self.log_writer("Downloaded Wake word onnx")
     
     def _download_using_requests(self, subfolder, link, filename):
         os.makedirs(os.path.join(self.target_dir, subfolder), exist_ok=True)
@@ -661,8 +679,8 @@ class InstallerEngine:
         
         try:
             if os.path.exists(req_file):
-                subprocess.run([self.venv_python, "-m", "pip", "install", "-r", req_file], check=True)
-            
+                command = subprocess.run([self.venv_python, "-m", "pip", "install", "-r", req_file], check=True, text=True)
+                self.log_writer(command.stdout)
                 return
         except:
             if self.current_tries < self.max_tries:
@@ -675,7 +693,7 @@ class InstallerEngine:
                 self.current_tries += 1
                 self._install_python_dependencies()
         
-        print("MALAS sorry")
+        self.log_writer("Couldn't install dependencies")
     
     def _install_vlm_server(self):
         cudart_link = "https://github.com/ggml-org/llama.cpp/releases/download/b8429/cudart-llama-bin-win-cuda-12.4-x64.zip"
@@ -741,7 +759,7 @@ class InstallerEngine:
             os.remove(llama_cpp_zip_path)
             os.remove(cudart_zip_path)
         else:
-            print("AYAWWWW")
+            self.log_writer("Couldn't setup server")
 
     
     def _verify_working(self):
