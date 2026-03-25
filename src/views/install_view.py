@@ -11,19 +11,16 @@ def InstallView(page: ft.Page):
     path_text = ft.Text(default_path, color=ft.Colors.WHITE)
     page.session.store.set("overwrite", False)
 
-    async def close_app(run_control_center: bool):
+    run_cc = ft.Checkbox("Run IRIS Control Center on exit.")
+
+    async def close_app(e):
+        run_control_center: bool = run_cc.value
         if run_control_center:
-            subprocess.Popen(
-                ["uv", "run", "--python", "./.venv/", "flet", "run", "./iris_control_center/src/main.py"],
-                cwd=path_text.value, # Set the working directory directly here
-                creationflags=subprocess.CREATE_NEW_CONSOLE
-            )
+            os.startfile(os.path.join(path_text.value, "IRIS Control Center.lnk"))
         
         # Give the OS a moment to register the process start
         await asyncio.sleep(1)
-        page.window.close()
-
-    run_cc = ft.Checkbox("Run IRIS Control Center on exit.")
+        await page.window.close()
 
     def show_closing_dialog():
         dialog = ft.AlertDialog(
@@ -36,7 +33,7 @@ def InstallView(page: ft.Page):
                 ft.TextButton("Cancel", on_click=lambda e: page.pop_dialog()),
             ],
             actions_alignment=ft.MainAxisAlignment.END,
-            on_dismiss=lambda e: close_app(run_cc.value),
+            on_dismiss=close_app,
         )
         page.show_dialog(dialog)
 
@@ -112,12 +109,12 @@ def InstallView(page: ft.Page):
         if os.path.exists(path) and not page.session.store.get("overwrite"):
             page.show_dialog(confirm_dialog)
         else:
-            if page.session.store.get("overwrite"):
-                try:
-                    shutil.rmtree(path)
-                except OSError as e:
-                    print(f"Error clearing directory {path}: {e}")
-                    return
+            # if page.session.store.get("overwrite"):
+            #     try:
+            #         shutil.rmtree(path)
+            #     except OSError as e:
+            #         print(f"Error clearing directory {path}: {e}")
+            #         return
 
             if not os.path.exists(path):
                 os.makedirs(path)
