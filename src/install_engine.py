@@ -10,6 +10,7 @@ from tqdm.auto import tqdm
 from huggingface_hub import hf_hub_download, list_repo_files
 import fnmatch
 import win32com.client
+import pythoncom
 
 class InstallerEngine:
     current_tries: int = 0
@@ -544,13 +545,23 @@ class InstallerEngine:
             description="Creating shortcut"
         )
         
-        shell = win32com.client.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortCut(os.path.join(self.target_dir, "IRIS Control Center.lnk"))
-        shortcut.Targetpath = os.path.join(self.target_dir, "iris_control_center", "IRIS Control Center.bat")
-        shortcut.IconLocation = os.path.join(self.target_dir, "iris_control_center", "src", "assets", "icon.ico")
-        shortcut.WorkingDirectory = os.path.join(self.target_dir, "iris_control_center")
-        shortcut.WindowStyle = 7
-        shortcut.save()
+        try:
+            # Initialize COM for this specific thread
+            pythoncom.CoInitialize()
+            
+            shell = win32com.client.Dispatch("WScript.Shell")
+            shortcut = shell.CreateShortCut(os.path.join(self.target_dir, "IRIS Control Center.lnk"))
+            shortcut.Targetpath = os.path.join(self.target_dir, "iris_control_center", "IRIS Control Center.bat")
+            shortcut.IconLocation = os.path.join(self.target_dir, "iris_control_center", "src", "assets", "icon.ico")
+            shortcut.WorkingDirectory = os.path.join(self.target_dir, "iris_control_center")
+            shortcut.WindowStyle = 7
+            shortcut.save()
+            
+        except Exception as e:
+            print(f"Error creating shortcut: {e}")
+        finally:
+            # Always uninitialize to clean up resources
+            pythoncom.CoUninitialize()
     
     def _download_provenance_models(self):
         os.makedirs(os.path.join(self.target_dir, "models/provenance"), exist_ok=True)
@@ -679,7 +690,7 @@ class InstallerEngine:
         
         try:
             if os.path.exists(req_file):
-                command = subprocess.run([self.venv_python, "-m", "pip", "install", "-r", req_file], check=True, text=True)
+                command = subprocess.run([self.venv_python, "-m", "pip", "install", "-r", req_file], capture_output=True, check=True, text=True)
                 self.log_writer(command.stdout)
                 return
         except:
