@@ -23,8 +23,6 @@ def main(page: ft.Page):
 
     page.on_route_change = route_change
     page.on_view_pop = view_pop
-
-    page.route = "/install"
     
     route_change()
 
