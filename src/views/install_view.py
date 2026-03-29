@@ -60,10 +60,7 @@ def InstallView(page: ft.Page):
         "Preparing Environment",
         "Downloading Provenance Check Models",
         "Downloading Transcription/Narration Models",
-        "Downloading Vision-Language Model",
-        "Downloading Multimodal Projector for VLM",
         "Downloading Assets, Databases, and Scripts",
-        "Installing LLM Server",
         "Installing Python Dependencies",
         "Installing IRIS Control Center",
         "Checking if everything is in place",
@@ -109,12 +106,12 @@ def InstallView(page: ft.Page):
         if os.path.exists(path) and not page.session.store.get("overwrite"):
             page.show_dialog(confirm_dialog)
         else:
-            # if page.session.store.get("overwrite"):
-            #     try:
-            #         shutil.rmtree(path)
-            #     except OSError as e:
-            #         print(f"Error clearing directory {path}: {e}")
-            #         return
+            if page.session.store.get("overwrite"):
+                try:
+                    shutil.rmtree(path)
+                except OSError as e:
+                    print(f"Error clearing directory {path}: {e}")
+                    return
 
             if not os.path.exists(path):
                 os.makedirs(path)

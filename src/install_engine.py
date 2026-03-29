@@ -6,6 +6,7 @@ import requests
 import asyncio
 import zipfile
 import shutil
+import platform
 from tqdm.auto import tqdm
 from huggingface_hub import hf_hub_download, list_repo_files
 import fnmatch
@@ -40,276 +41,219 @@ class InstallerEngine:
         try:
             # SET UP ENV
 
-            # self.current_step = 0
-            # self.update_ui_callback(
-            #     step_index=self.current_step, 
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Setting up Python Environment."
-            # )
-            # self._prepare_environment()
-            # self.update_ui_callback(
-            #     step_index=self.current_step, 
-            #     status="done",
-            #     progress=-1,
-            #     description=f"Python Environment created."
-            # )
+            self.current_step = 0
+            self.update_ui_callback(
+                step_index=self.current_step, 
+                status="running",
+                progress=-1,
+                description=f"Setting up Python Environment."
+            )
+            self._prepare_environment()
+            self.update_ui_callback(
+                step_index=self.current_step, 
+                status="done",
+                progress=-1,
+                description=f"Python Environment created."
+            )
 
             # # SET UP PROVENANCE
 
-            # self.current_step = 1
-            # self.update_ui_callback(
-            #     step_index=self.current_step, 
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Downloading Deepfake Detection Model."
-            # )
-            # self._download_provenance_models()
-            # self.update_ui_callback(
-            #     step_index=self.current_step, 
-            #     status="done",
-            #     progress=100,
-            #     description=f"Downloaded Deepfake Detection Model."
-            # )
+            self.current_step = 1
+            self.update_ui_callback(
+                step_index=self.current_step, 
+                status="running",
+                progress=-1,
+                description=f"Downloading Deepfake Detection Model."
+            )
+            self._download_provenance_models()
+            self.update_ui_callback(
+                step_index=self.current_step, 
+                status="done",
+                progress=100,
+                description=f"Downloaded Deepfake Detection Model."
+            )
 
             # # SET UP STT/TTS/Wake Word
 
-            # self.current_step = 2
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Downloading Faster-Whisper Speech-to-Text Model"
-            # )
-            # self._download_hf_model(
-            #     "Systran/faster-whisper-small",
-            #     "models/stt",
-            #     [
-            #         "config.json",
-            #         "preprocessor_config.json",
-            #         "model.bin",
-            #         "tokenizer.json",
-            #         "vocabulary.*",
-            #     ]
-            # )
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description="Downloading Kokoro-onnx Text-to-Speech model"
-            # )
-            # self._download_kokoro_onnx()
+            self.current_step = 2
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Downloading Faster-Whisper Speech-to-Text Model"
+            )
+            self._download_hf_model(
+                "Systran/faster-whisper-small",
+                "models/stt",
+                [
+                    "config.json",
+                    "preprocessor_config.json",
+                    "model.bin",
+                    "tokenizer.json",
+                    "vocabulary.*",
+                ]
+            )
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description="Downloading Kokoro-onnx Text-to-Speech model"
+            )
+            self._download_kokoro_onnx()
 
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Downloading 'Hey_Iris' openWakeWord model"
-            # )
-            # self._download_wakeword()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="done",
-            #     progress=-1,
-            #     description=f"Downloaded Transcription/Narration Models"
-            # )
-
-            # # Download Qwen3-VL and MMPROJ
-
-            # self.current_step = 3
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Downloading Qwen3-VL model"
-            # )
-            # self._download_using_requests(
-            #     "models\\vlm",
-            #     "https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3VL-2B-Instruct-Q4_K_M.gguf",
-            #     "Qwen3VL-2B-Instruct-Q4_K_M.gguf"
-            # )
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="done",
-            #     progress=-1,
-            #     description=f"Downloaded Qwen3-VL model"
-            # )
-
-            # self.current_step = 4
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Downloading Qwen3-VL multimodal projector (MMPROJ)"
-            # )
-            # self._download_using_requests(
-            #     "models\\vlm",
-            #     "https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF/resolve/main/mmproj-Qwen3VL-2B-Instruct-F16.gguf",
-            #     "mmproj-Qwen3VL-2B-Instruct-F16.gguf"
-            # )
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="done",
-            #     progress=-1,
-            #     description=f"Downloaded Qwen3-VL multimodal projector (MMPROJ)"
-            # )
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Downloading 'Hey_Iris' openWakeWord model"
+            )
+            self._download_wakeword()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="done",
+                progress=-1,
+                description=f"Downloaded Transcription/Narration Models"
+            )
 
             # # DL All other files
 
-            # self.current_step = 5
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Downloading Assets, Databases, and Scripts"
-            # )
-            # self._download_using_requests(
-            #     "git",
-            #     "https://github.com/deepfake-dev/IRIS_system/archive/refs/heads/main.zip",
-            #     "main.zip"
-            # )
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Decompressing Package."
-            # )
-            # self.decompress_main()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Moving Avatar Assets."
-            # )
-            # self.move_avatar_assets()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Moving Databases."
-            # )
-            # self.move_databases()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Moving Scripts."
-            # )
-            # self.move_scripts()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Cleaning up cloned git"
-            # )
-            # self.clean_git()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="done",
-            #     progress=-1,
-            #     description=f"Downloaded Assets, Databases, and Scripts"
-            # )
+            self.current_step = 3
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Downloading Assets, Databases, and Scripts"
+            )
+            self._download_using_requests(
+                "git",
+                "https://github.com/deepfake-dev/IRIS_system/archive/refs/heads/main.zip",
+                "main.zip"
+            )
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Decompressing Package."
+            )
+            self.decompress_main()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Moving Avatar Assets."
+            )
+            self.move_avatar_assets()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Moving Databases."
+            )
+            self.move_databases()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Moving Scripts."
+            )
+            self.move_scripts()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Cleaning up cloned git"
+            )
+            self.clean_git()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="done",
+                progress=-1,
+                description=f"Downloaded Assets, Databases, and Scripts"
+            )
 
             # # Install Deps
 
-            # self.current_step = 6
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Install LLM Server"
-            # )
-            # self._install_vlm_server()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="done",
-            #     progress=-1,
-            #     description=f"Installed LLM Server"
-            # )
-
-            # # Install VLM Server
-
-            # self.current_step = 7
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Installing Python Dependencies"
-            # )
-            # self._install_python_dependencies()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="done",
-            #     progress=-1,
-            #     description=f"Installed Python Dependencies"
-            # )
+            self.current_step = 4
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Installing Python Dependencies"
+            )
+            self._install_python_dependencies()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="done",
+                progress=-1,
+                description=f"Installed Python Dependencies"
+            )
 
             # # Install Control Center
 
-            # self.current_step = 8
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Downloading Control Center"
-            # )
-            # self._download_using_requests(
-            #     "git",
-            #     "https://github.com/deepfake-dev/IRIS_Control_Center/archive/refs/heads/main.zip",
-            #     "main.zip"
-            # )
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Decompressing Package."
-            # )
-            # self.decompress_main()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Moving Control Center Files."
-            # )
-            # self.move_control_center_files()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Cleaning up cloned git"
-            # )
-            # self.clean_git()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="done",
-            #     progress=-1,
-            #     description=f"Installed IRIS Control Center"
-            # )
+            self.current_step = 5
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Downloading Control Center"
+            )
+            self._download_using_requests(
+                "git",
+                "https://github.com/deepfake-dev/IRIS_Control_Center/archive/refs/heads/main.zip",
+                "main.zip"
+            )
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Decompressing Package."
+            )
+            self.decompress_main()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Moving Control Center Files."
+            )
+            self.move_control_center_files()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Cleaning up cloned git"
+            )
+            self.clean_git()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="done",
+                progress=-1,
+                description=f"Installed IRIS Control Center"
+            )
 
             # # Check everything
 
-            # self.current_step = 9
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="running",
-            #     progress=-1,
-            #     description=f"Checking if everything is in place"
-            # )
-            # self._verify_working()
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="done",
-            #     progress=-1,
-            #     description=f"Checked everything"
-            # )
+            self.current_step = 6
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="running",
+                progress=-1,
+                description=f"Checking if everything is in place"
+            )
+            self._verify_working()
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="done",
+                progress=-1,
+                description=f"Checked everything"
+            )
 
-            # self.current_step = 10
-            # self.update_ui_callback(
-            #     step_index=self.current_step,
-            #     status="done",
-            #     progress=-1,
-            #     description=f"IRIS System was installed!"
-            # )
+            self.current_step = 10
+            self.update_ui_callback(
+                step_index=self.current_step,
+                status="done",
+                progress=-1,
+                description=f"IRIS System was installed!"
+            )
 
             self.show_closing_dialog()
 
@@ -774,7 +718,23 @@ class InstallerEngine:
 
     
     def _verify_working(self):
+        system = platform.system()
+
+        is_lm_available = False
+
+        if system == "Windows":
+            roaming_app_data = os.environ.get('APPDATA', '')
+            if roaming_app_data:
+                lm_roaming_path = os.path.join(roaming_app_data, 'LM Studio')
+                if os.path.exists(lm_roaming_path):
+                    is_lm_available = True
+                else:
+                    raise RuntimeError("You need to install LM-Studio to use IRIS.")
+        else:
+            raise RuntimeError("IRIS Installer was built and tested for Windows only (YET).")
+        
         if all([
+            is_lm_available,
             # AVATAR STUFF
             os.path.exists(os.path.join(self.target_dir, "avatar", "css", "kiosk.css")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "css", "style.css")),
@@ -782,19 +742,26 @@ class InstallerEngine:
             os.path.exists(os.path.join(self.target_dir, "avatar", "js", "audio.js")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "js", "main.js")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "js", "scene.js")),
+            os.path.exists(os.path.join(self.target_dir, "avatar", "js", "mic-processor.js")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "js", "signal.js")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "js", "vrm.js")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "js", "websocket.js")),
+            os.path.exists(os.path.join(self.target_dir, "avatar", "animations", "idle1.fbx")),
+            os.path.exists(os.path.join(self.target_dir, "avatar", "animations", "idle2.fbx")),
+            os.path.exists(os.path.join(self.target_dir, "avatar", "animations", "idle3.fbx")),
+            os.path.exists(os.path.join(self.target_dir, "avatar", "animations", "listen1.fbx")),
+            os.path.exists(os.path.join(self.target_dir, "avatar", "animations", "think1.fbx")),
+            os.path.exists(os.path.join(self.target_dir, "avatar", "animations", "talk1.fbx")),
+            os.path.exists(os.path.join(self.target_dir, "avatar", "animations", "talk2.fbx")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "bsu_girl.vrm")),
+            os.path.exists(os.path.join(self.target_dir, "avatar", "bsu_boy.vrm")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "icon.png")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "index.html")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "kist-1.webp")),
             os.path.exists(os.path.join(self.target_dir, "avatar", "logo.png")),
 
             # DATABASE
-            os.path.exists(os.path.join(self.target_dir, "databases", "Citizens_Charter_Handbook_2025.db")),
-            os.path.exists(os.path.join(self.target_dir, "databases", "Citizens_Charter_Handbook_2025.faiss")),
-            os.path.exists(os.path.join(self.target_dir, "databases", "chroma_db")),
+            os.path.exists(os.path.join(self.target_dir, "databases", "lance_db")),
 
             # MODELS (PROVENANCE)
             os.path.exists(os.path.join(self.target_dir, "models", "provenance", "deepfake_detector_model.onnx")),
@@ -810,11 +777,6 @@ class InstallerEngine:
 
             os.path.exists(os.path.join(self.target_dir, "models", "tts", "kokoro-v1.0.onnx")),
             os.path.exists(os.path.join(self.target_dir, "models", "tts", "voices-v1.0.bin")),
-
-            # MODELS (VLM)
-
-            os.path.exists(os.path.join(self.target_dir, "models", "vlm", "mmproj-Qwen3VL-2B-Instruct-F16.gguf")),
-            os.path.exists(os.path.join(self.target_dir, "models", "vlm", "Qwen3VL-2B-Instruct-Q4_K_M.gguf")),
 
             # MODELS (WAKEWORD)
 
@@ -840,8 +802,7 @@ class InstallerEngine:
             os.path.exists(os.path.join(self.target_dir, "iris_control_center", "src", "assets", "icon.ico")),
             os.path.exists(os.path.join(self.target_dir, "iris_control_center", "src", "assets", "icon.png")),
 
-            # SERVER
-            os.path.exists(os.path.join(self.target_dir, "server", "llama-server.exe")),
+            
         ]):
             self.update_ui_callback(
                 step_index=self.current_step,
